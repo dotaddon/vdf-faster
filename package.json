@@ -14,6 +14,12 @@
     "parser",
     "encoder"
   ],
+  "keywords": [
+    "valve",
+    "keyvalue",
+    "dota",
+    "json"
+  ],
   "main": "./index.js",
   "issues": {
     "url": "https://gitee.com/takegine/dota-js-kv/issues"
