@@ -1,35 +1,42 @@
 exports.encode = encode;
 exports.decode = decode;
+exports.baseth = baseth;
 
-var {parse,KeyValueDecoder} = require('./lib/decode');
+var {decode} = require('./lib/decode');
 
+/**
+ * 转义 字符串 转为 数组
+ */ 
 function decode(code) {
     'use strict';
-    var decoder = new KeyValueDecoder();
-
-    parse(code, decoder);
-    return decoder.root;
+    return decode(code)[0];
 };
 
-var {encode_o,encode_KV} = require('./lib/encode');
+var {encode} = require('./lib/encode');
 
-function encode(obj, compact ,child){
+/**
+ * 将数组或obj对象转为valve的KV的字符串
+ * 
+ * obj:转义对象
+ * 
+ * compact:是否换行
+ */
+function encode(obj, compact ){
     'use strict';
-    let Newline = (compact)? " " : "\n"
-	var str = "";
-	if  (child){
-		for(var i in obj) {
-			if(obj[i].constructor == Function) continue;
-			str = `"${i}" {\n`;
-			for (let j in obj[i]){
-				str += '\t'+ encode_KV(j, obj[i][j], 0, false, Newline, "")+`\n`
-			}
-			str += '}\n';
-		}
-		return str
-    }
-
-    return encode_o(obj, 0, compact, Newline)
+    let depth = (compact)? -1 : 0;
+    return encode( obj, depth)
 }
 
-exports.default = { encode: encode, decode: decode };
+var {baseth} = require('./lib/baseth');
+
+/**
+ * 导出文件中 用 #base 导入其他文件的列表
+ * 
+ * 返回数组
+ */
+function baseth(code ){
+    'use strict';
+    return baseth( code)
+}
+
+exports.default = { encode: encode, decode: decode, baseth: baseth };

@@ -1,7 +1,7 @@
 {
   "name": "dota-js-kv",
   "description": "a tools for turn to json to dota2's kv file.//Valve's KeyValues Text File Format serialization library",
-  "version": "0.1.3",
+  "version": "0.1.5",
   "homepage": "https://gitee.com/takegine/dota-js-kv",
   "repository": {
     "type": "git",
@@ -32,8 +32,7 @@
   },
   "license": "SEE LICENSE IN LICENSE",
   "directories": {
-    "lib": "lib",
-    "test": "test"
+    "lib": "lib"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
