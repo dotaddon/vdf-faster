@@ -1,16 +1,21 @@
 exports.encode = encode;
 exports.decode = decode;
 exports.baseth = baseth;
-
-var {decode} = require('./lib/decode');
+exports.debase = debase;
 
 /**
- * 转义 字符串 转为 数组
+ * 转义 字符串 转为 obj对象
  */ 
+var {parse,KeyValueDecoder} = require('./lib/decode');
+
 function decode(code) {
     'use strict';
-    return decode(code)[0];
+    var decoder = new KeyValueDecoder();
+
+    parse(code, decoder);
+    return decoder.root;
 };
+
 
 var {encode} = require('./lib/encode');
 
@@ -39,4 +44,19 @@ function baseth(code ){
     return baseth( code)
 }
 
-exports.default = { encode: encode, decode: decode, baseth: baseth };
+var {debase} = require('./lib/debase');
+
+/**
+ * 转义 字符串 转为 数组
+ */ 
+function debase(code) {
+    'use strict';
+    return debase(code)[0];
+};
+
+exports.default = { 
+    encode: encode,
+    decode: decode,
+    baseth: baseth,
+    debase: debase
+};
