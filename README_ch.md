@@ -31,10 +31,13 @@ vdf.decode(fs.readFileSync(file, 'utf-8'))
 
 
 #### 同类库对比
- - vdf-extra 无法解析超长文件
- - vdf-parser 无法解析 #base
- - vdf-reader #base作为key，重复的会覆盖
- - kvparser 无法解析 #base
- - vdfjs 忽略掉了#base
- - fast-vdf 忽略掉了#base
- - vdfplus #base 被视为了注释？
+
+ | npm | 测试parse速度 | 存在问题 |
+ | ---| ---|---|
+ | fast-vdf | 13.438ms | 忽略掉了#base
+ | this | 19.054ms |
+ | kvparser | 34.062ms | #base报错
+ | vdf-reader | 39.303ms | #base作为key，重复的会覆盖
+ | vdf-parser | 42.146ms | #base报错
+ | vdf-extra |  50.318ms | 无法解析超长文件
+ | vdfjs |  87.78ms | 忽略掉了#base
