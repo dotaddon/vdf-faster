@@ -1,116 +1,57 @@
-import { isStringKeyword, isCharSimple } from './util';
-
-export function encode_o(obj:object, depth:number, compact:boolean, Newline:string){
+function encode_o(obj:object, depth:number){
     'use strict';
 	var str = "";
-	var ch = "";//最后一个字符检测
-	var dp = ms('\t', compact?1:depth-1);
+	var dp = ms('\t', depth);
+    let newLine = depth==-1? ' ' : '\n' ;
 	for(var i in obj) {
-		if(obj[i].constructor == Function) continue;
-		str += encode_KV(i, obj[i], depth, compact, Newline, ch);
-		ch = compact? str.charAt(str.length - 1) : ch ;
+		if(obj[i].constructor == Function)
+            continue;
+        str += dp + `"${i}" ` + encode( obj[i], depth) +newLine;
 	}
-    return str+Newline+dp;
+    return str+newLine+ms('\t', depth-1);
 }
 
-function encode_a(arr:Array<any>, depth:number, compact:boolean, Newline:string){
+function encode_a(arr:Array<any>, depth:number){
     'use strict';
 	var str = "";
-	var dp = ms('\t', compact?1:depth-1);
+	var dp = ms('\t', depth-1);
+    let newLine = depth==-1? ' ' : '\n' ;
 	for(var i = 0; i < arr.length;++i) {
-        str += (i === 0 ? '' : ' ') + GetValue(arr[i], depth, compact, Newline)+Newline;
+        str += (i === 0 ? '' : ' ') + (i %2===0 ? newLine : '') + dp + encode( arr[i], depth);
 	}
-	return str+Newline+dp
+	return str+newLine+dp
 }
 
-export function encode_KV(key:string, value:any, depth:number, compact:boolean, Newline:string, ch:string){
+export function encode(value, depth){
     'use strict';
-	var dp = ms('\t', compact?1:depth);
-    var str =(!compact&&isCharSimple(ch))? ' ':'';
-    var key1 = (compact&&isSimple(key))? key : `"${key}"`
-	return str+dp+key1+' '+GetValue(value, depth, compact, Newline)+Newline
-}
-
-
-function GetValue(value, depth, compact, Newline){
-    'use strict';
+    depth += depth==-1? 0 : 1 ;
+    let newLine = depth==-1? ' ' : '\n' ;
     var type = value.constructor;
     if(value === null
     || value === undefined
-    || type  === Boolean )
+    ||  type === Boolean)
         //isObjectKeyword
-        return keywordToString(value);
-    if(type === String ){
-        //supported
-        var tmp = String(value).replace(/"/gm, '\\"');
-        if (compact&&isSimple(tmp)){
-            return tmp;
-        }else {
-            return '"'+tmp+'"';
-        }
-    }
-    if(type === Number ) {
-        if (compact) {
-            return Number(value).toString(10);
-        } else {
-            return value;
-        }
-    }
-    if(type === Array)
-    return `[${Newline+encode_a(value, depth+1, compact, Newline)}]`;
+        return `"${String(value)}"`;
 
-    return `{${Newline+encode_o(value, depth+1, compact, Newline)}}`;
+    if( type === String )
+        //supported
+        return `"${String(value).replace(/"/gm, '\\"')}"`;
+
+    if( type === Number )
+        return `"${Number(value).toString(10)}"`;
+
+    if( type === Array  )
+        return `{${newLine+encode_a(value, depth)}}`;
+
+    return `{${newLine+encode_o(value, depth)}}`;
 }
 
 
 function ms(str, times) {
     'use strict';
     var r = '', i = 0;
-    for (i; i < times; i += 1) {
+    for (i; i < times; i ++) {
         r += str;
     }
     return r;
-}
-
-function isSimple(key) {
-    'use strict';
-
-    var i = 0, ch;
-
-    if ((key.length === 0) || (isStringKeyword(key))) {
-        return false;
-    }
-
-    for (i; i < key.length; i += 1) {
-        ch = key.charAt(i);
-        switch (ch) {
-        case ' ':
-        case '\t':
-        case '\n':
-        case '\r':
-        case '[':
-        case ']':
-        case '{':
-        case '}':
-        case '"':
-        case '\'':
-        case '\\':
-            return false;
-        }
-    }
-
-    return true;
-}
-
-function supported(obj) {
-    'use strict';
-    if ((obj.constructor === String) || (obj.constructor === Number)) {
-        return true;
-    }
-    return false;
-}
-
-function keywordToString(obj) {
-    'use strict';
-    return String(obj);
 }

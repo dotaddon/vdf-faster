@@ -1,4 +1,4 @@
-import {parse, vdfDecoder } from './lib/decode';
+import { parse, vdfDecoder } from './lib/decode';
 
 export function decode(code:string) {
     'use strict';
@@ -8,23 +8,39 @@ export function decode(code:string) {
     return decoder;
 };
 
-import {encode_o,encode_KV} from './lib/encode';
+var vdf = require('./lib/encode');
 
-export function encode(obj:object, compact:boolean ,child:boolean){
+/**
+ * 将数组或obj对象转为valve的KV的字符串
+ * 
+ * obj:转义对象
+ * 
+ * compact:是否换行
+ */
+export function encode(obj:object, compact:boolean ){
     'use strict';
-    let Newline = (compact)? " " : "\n"
-	var str = "";
-	if  (child){
-		for(var i in obj) {
-			if(obj[i].constructor == Function) continue;
-			str = `"${i}" {\n`;
-			for (let j in obj[i]){
-				str += '\t'+ encode_KV(j, obj[i][j], 0, false, Newline, "")+`\n`
-			}
-			str += '}\n';
-		}
-		return str
-    }
-
-    return encode_o(obj, 0, compact, Newline)
+    let depth = (compact)? -1 : 0;
+    return vdf.encode( obj, depth)
 }
+
+var BASETH = require('./lib/baseth');
+
+/**
+ * 导出文件中 用 #base 导入其他文件的列表
+ * 
+ * 返回数组
+ */
+export function baseth(code ){
+    'use strict';
+    return BASETH.baseth( code)
+}
+
+var DEBASE = require('./lib/debase');
+
+/**
+ * 转义 字符串 转为 数组
+ */ 
+export function debase(code:string) {
+    'use strict';
+    return DEBASE.debase(code)[0];
+};
