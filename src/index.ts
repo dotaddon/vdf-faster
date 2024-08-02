@@ -1,19 +1,16 @@
-exports.encode = encode;
-exports.decode = decode;
+import {parse, vdfDecoder } from './lib/decode';
 
-var {parse,KeyValueDecoder} = require('./lib/decode');
-
-function decode(code) {
+export function decode(code:string) {
     'use strict';
-    var decoder = new KeyValueDecoder();
+    var decoder = new vdfDecoder();
 
     parse(code, decoder);
-    return decoder.root;
+    return decoder;
 };
 
-var {encode_o,encode_KV} = require('./lib/encode');
+import {encode_o,encode_KV} from './lib/encode';
 
-function encode(obj, compact ,child){
+export function encode(obj:object, compact:boolean ,child:boolean){
     'use strict';
     let Newline = (compact)? " " : "\n"
 	var str = "";
@@ -31,5 +28,3 @@ function encode(obj, compact ,child){
 
     return encode_o(obj, 0, compact, Newline)
 }
-
-exports.default = { encode: encode, decode: decode };

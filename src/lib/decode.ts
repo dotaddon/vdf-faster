@@ -1,21 +1,21 @@
-const { isStringKeyword, isCharSimple } = require('./util');
+import { isStringKeyword, isCharSimple } from './util';
 
-function KeyValueDecoder() {
+export function vdfDecoder() {
     'use strict';
 
-    var self = this, root, depths, depth,
-        inString, stringType, building, curKey;
+    var self = this, depths, depth, baseList;
 
     this.onInit = function () {
         depths = [];
         depth = 0;
-        inString = false;
-        stringType = 0;
-        building = '';
-        curKey = null;
+        baseList = [];
 
         depths.push({});
     };
+
+    this.onBase = function (path) {
+        baseList.push(path)
+    }
 
     this.onKeyValue = function (key, value) {
         depths[depth][key] = value;
@@ -55,20 +55,21 @@ function KeyValueDecoder() {
     };
 
     this.onFinish = function () {
-        root = depths[0];
-        self.root = root;
+        self.root = depths[0];
+        self.base = baseList
     };
 }
 
-KeyValueDecoder.prototype = {
-    root: null
+vdfDecoder.prototype = {
+    root: null,
+    base: []
 };
 
-function parse(code, parser) {
+export function parse(code, parser) {
     'use strict';
-    var i = 0, depthsKey = [], depthsType = [], depth = -1,
+    var i = 0, depthsKey = <string[]>[], depthsType = <number[]>[], depth = -1,
         inString = false, stringType = 0, building = '',
-        curKey = null, keyLine = 0, lineCount = 1, tmpStr, ch;
+        curKey = <string|null>null, keyLine = 0, lineCount = 1, tmpStr;
 
     parser.parserGetParentType = ()=> {
         if (depth === 0) {
@@ -84,7 +85,17 @@ function parse(code, parser) {
     parser.onInit();
 
     for (i; i < code.length; i += 1) {
-        ch = code.charAt(i);
+        singleCh(code.charAt(i))
+    }
+
+    if (curKey !== null) {
+        throw new Error('Key \"' + curKey + "\" doesn't have a value");
+    }
+
+    parser.onFinish();
+
+    function singleCh(ch:string) {
+
         if (inString) {
             if (ch === '\\') {
                 if (i === code.length - 1) {
@@ -143,7 +154,9 @@ function parse(code, parser) {
             } else {
                 building += ch;
             }
-        } else if (ch === '\"') {
+        } else if (curKey == '#base'){
+            parser.onBase(building)
+        }else if (ch === '\"') {
             inString = true;
             stringType = 0;
             building = '';
@@ -160,7 +173,7 @@ function parse(code, parser) {
 
             parser.onBlock(curKey, 0);
 
-            depthsKey.push(curKey);
+            depthsKey.push(curKey!);
             depthsType.push(0);
 
             curKey = null;
@@ -189,7 +202,7 @@ function parse(code, parser) {
 
             parser.onBlock(curKey, 1);
 
-            depthsKey.push(curKey);
+            depthsKey.push(curKey!);
             depthsType.push(1);
 
             curKey = null;
@@ -243,13 +256,6 @@ function parse(code, parser) {
             i -= 1;
         }
     }
-
-    if (curKey !== null) {
-        throw new Error('Key \"' + curKey + "\" doesn't have a value");
-    }
-
-    parser.onFinish();
-
 };
 
 function isNumeric(str) {
@@ -270,5 +276,3 @@ function keywordToValue(str) {
         return null;
     }
 }
-
-module.exports = {parse,KeyValueDecoder};

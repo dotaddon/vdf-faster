@@ -1,6 +1,6 @@
-const { isStringKeyword, isCharSimple } = require('./util');
+import { isStringKeyword, isCharSimple } from './util';
 
-function encode_o(obj, depth, compact, Newline){
+export function encode_o(obj:object, depth:number, compact:boolean, Newline:string){
     'use strict';
 	var str = "";
 	var ch = "";//最后一个字符检测
@@ -13,7 +13,7 @@ function encode_o(obj, depth, compact, Newline){
     return str+Newline+dp;
 }
 
-function encode_a(arr, depth, compact, Newline){
+function encode_a(arr:Array<any>, depth:number, compact:boolean, Newline:string){
     'use strict';
 	var str = "";
 	var dp = ms('\t', compact?1:depth-1);
@@ -23,7 +23,7 @@ function encode_a(arr, depth, compact, Newline){
 	return str+Newline+dp
 }
 
-function encode_KV(key, value, depth, compact, Newline, ch){
+export function encode_KV(key:string, value:any, depth:number, compact:boolean, Newline:string, ch:string){
     'use strict';
 	var dp = ms('\t', compact?1:depth);
     var str =(!compact&&isCharSimple(ch))? ' ':'';
@@ -114,6 +114,3 @@ function keywordToString(obj) {
     'use strict';
     return String(obj);
 }
-
-
-module.exports = {encode_o,encode_KV};

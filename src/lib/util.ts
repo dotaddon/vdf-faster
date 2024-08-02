@@ -1,5 +1,5 @@
 
-module.exports.isStringKeyword = function (str) {
+export function isStringKeyword(str:string) {
     'use strict';
     switch (str) {
     case 'true':
@@ -12,7 +12,7 @@ module.exports.isStringKeyword = function (str) {
 }
 
 
-module.exports.isCharSimple = function (ch) {
+export function isCharSimple(ch:string) {
     'use strict';
     switch (ch) {
     case '':
