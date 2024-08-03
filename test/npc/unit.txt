@@ -1,2 +1,9 @@
 #base "npc_units_custom.txt"
 #base "npc_heros_custom.txt"
+
+
+"root1" {
+    "root2" {
+        "key" "value"
+    }
+}

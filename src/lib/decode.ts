@@ -154,37 +154,7 @@ export function parse(code:string, parser:vdfDecoder) {
             }
             i += 1;
         } else if ((ch === '"' && stringType === 0) || (ch === "'" && stringType === 1) || (stringType === 2 && !isCharSimple(ch))) {
-            switch (parser.getBlockType()) {
-                case BracketType.花括号:
-                    if (curKey === null) {
-                        curKey = curText;
-                        keyLine = lineCount;
-                    } else if (curKey == '#base'){
-                        parser.onBase(curText)
-                        curKey = null;
-                    } else {
-                        if (keyLine !== lineCount) {
-                            throw new Error('Key must be on the same line of the value at line ' + keyLine);
-                        }
-                        if (stringType === 2) {
-                            if (isNumberText(curText)) {
-                                parser.onKeyValue(curKey, Number(curText));
-                            } else if (isBoolText(curText)) {
-                                parser.onKeyValue(curKey, BoolTextToBool(curText));
-                            } else {
-                                parser.onKeyValue(curKey, curText);
-                            }
-                        } else {
-                            parser.onKeyValue(curKey, curText);
-                        }
-                        curKey = null;
-                    }
-                case BracketType.方括号:
-                    parser.onValue(curText);
-                    break;
-                default:
-                    break;
-            }
+            aText(curText)
             inString = false;
             if (stringType === 2) {
                 i -= 1;
@@ -194,6 +164,52 @@ export function parse(code:string, parser:vdfDecoder) {
             curText += ch;
             return true
         }
+    }
+
+    function aText(text:string) {
+        switch (parser.getBlockType()) {
+            case BracketType.花括号:
+                if (curKey === null) {
+                    curKey = text;
+                    keyLine = lineCount;
+                } else if (curKey == '#base'){
+                    parser.onBase(text)
+                    curKey = null;
+                } else {
+                    if (keyLine !== lineCount) {
+                        throw new Error('Key must be on the same line of the value at line ' + keyLine);
+                    }
+                    if (stringType === 2) {
+                        if (isNumberText(text)) {
+                            parser.onKeyValue(curKey, Number(text));
+                        } else if (isBoolText(text)) {
+                            parser.onKeyValue(curKey, BoolTextToBool(text));
+                        } else {
+                            parser.onKeyValue(curKey, text);
+                        }
+                    } else {
+                        parser.onKeyValue(curKey, text);
+                    }
+                    curKey = null;
+                }
+            case BracketType.方括号:
+                parser.onValue(text);
+                break;
+            default:
+                break;
+        }
+    }
+
+    function textInMark(ch:'"'|"'") {
+        let right = i+1
+        do {
+            right = code.indexOf(ch,right)
+        }
+        while (code.charAt(right-1)=='\\')
+        curText = code.slice(i+1,right);
+        
+        i = right
+        aText(curText)
     }
 
     /** 开启新的括号 */
@@ -223,17 +239,11 @@ export function parse(code:string, parser:vdfDecoder) {
     function singleCh(ch:string) {
         if (inString) {
             textBuilding(ch)
-        } else if (ch == '#' && code.slice(i,5)=='#base'){
+        } else if (ch == '#' && code.slice(i,i+5)=='#base'){
             i += 4;
             curKey = '#base'
-        } else if (ch === '"') {
-            inString = true;
-            stringType = 0;
-            curText = '';
-        } else if (ch === "'") {
-            inString = true;
-            stringType = 1;
-            curText = '';
+        } else if (ch === '"' || ch === "'") {
+            textInMark(ch)
         } else if (ch === '{') {
             intoBracket(BracketType.花括号)
         } else if (ch === '}') {
