@@ -22,7 +22,10 @@ export class vdfDecoder {
     private depth: BlockInfo[]
     /** 当前修改的括号块 */
     private block: BlockInfo
+    private key: string | null
     constructor(
+        /** value的类型保持string。false将把bool和数字转化为对应类型 */
+        public strType:boolean = true,
         public root: any = {},
         public baseList: string[] = []
     ){
@@ -37,26 +40,58 @@ export class vdfDecoder {
     onBase(path:string) {
         this.baseList.push(path)
     }
-    /** 写入键值 */
-    onKeyValue(key:string, value:any) {
-        let block = this.block
-        if (block.type == BracketType.花括号)
-            block.element[key] = value;
-    };
-    /** 写入值 */
-    onValue(value:any) {
-        let block = this.block
-        if (block.type != BracketType.方括号)
-                return;
 
-        if (isNumberText(value)) {
-            block.element.push(Number(value));
-        } else {
-            block.element.push(value);
+    /** 存入一个键 */
+    onKey(key:string): boolean {
+        if (this.key)
+            return false;
+
+        this.key = key
+        return true
+    }
+    /** 写入值 */
+    onValue(text:string) {
+        let block = this.block
+        let value = this.modify(text)
+
+        switch (block.type) {
+            case BracketType.花括号:
+                if (this.key == null){
+                    this.key = text
+                } else if (this.key == '#base'){
+                    this.onBase(text)
+                    this.key = null;
+                } else {
+                    block.element[this.key] = value;
+                    this.key = null
+                }
+                break;
+            case BracketType.方括号:
+                if (this.key){
+                    block.element.push(this.modify(this.key));
+                    this.key = null
+                }
+                block.element.push(value);
+                break;
+            default:
+                break;
         }
     };
+    modify(text:string){
+        if (this.strType)
+            return text
+
+        if ( isNumberText(text) )
+            return  Number(text)
+
+        if ( isBoolText(text) )
+            return BoolTextToBool(text)
+    }
+
     /** 新进一个括号块 */
-    onBlock(key:string, type:BracketType) {
+    onBlock(type:BracketType) {
+        let key = this.key ?? '';
+        this.key = null
         switch (type) {
             case BracketType.花括号:
                 this.block = {
@@ -88,6 +123,8 @@ export class vdfDecoder {
                 parent.element[block.key] = block.element;
                 break;
             case BracketType.方括号:
+                if (block.key != '')
+                    parent.element.push(block.key);
                 parent.element.push(block.element);
                 break;
             default:
@@ -104,122 +141,61 @@ export class vdfDecoder {
 export function parse(code:string, parser:vdfDecoder) {
     'use strict';
     let i = 0,
-        /** i的位置在字符串中 */
-        inString = false, 
-        /** 字符串类型 */
-        stringType = 0,
-        /** 当前字符串内容 */
-        curText:string = '',
-        /** 当前文本的索引 */
-        curKey:string|null = null, 
         /** 索引所在行数 */
         keyLine = 0, 
         /** 当前处理到的行数 */
         lineCount = 1,
         /** 深度 */
-        stack:number = 0;
+        stack = 0;
 
     for (i; i < code.length; i ++) {
         singleCh(code.charAt(i))
     }
 
-    if (curKey !== null) {
-        throw new Error('Key \"' + curKey + "\" doesn't have a value");
-    }
+    // if (curKey !== null) {
+    //     throw new Error('Key \"' + curKey + "\" doesn't have a value");
+    // }
 
     return;
-
-    /** 继续构建当前文本 */
-    function textBuilding(ch:string):boolean|undefined {
-        
-        if (ch === '\\') {
-            if (i === code.length - 1) {
-                throw new Error('Cannot escape nothing at line ' + lineCount);
-            }
-            switch (code.charAt(i + 1)) {
-                case '"':
-                    curText += '"';
-                    break;
-                case "'":
-                    curText += "'";
-                    break;
-                case 'n':
-                    curText += '\n';
-                    break;
-                case 'r':
-                    curText += '\r';
-                    break;
-                default:
-                    throw new Error('Invalid escape character at line ' + lineCount);
-            }
-            i += 1;
-        } else if ((ch === '"' && stringType === 0) || (ch === "'" && stringType === 1) || (stringType === 2 && !isCharSimple(ch))) {
-            aText(curText)
-            inString = false;
-            if (stringType === 2) {
-                i -= 1;
-            }
-            return false
-        } else {
-            curText += ch;
-            return true
-        }
-    }
-
-    function aText(text:string) {
-        switch (parser.getBlockType()) {
-            case BracketType.花括号:
-                if (curKey === null) {
-                    curKey = text;
-                    keyLine = lineCount;
-                } else if (curKey == '#base'){
-                    parser.onBase(text)
-                    curKey = null;
-                } else {
-                    if (keyLine !== lineCount) {
-                        throw new Error('Key must be on the same line of the value at line ' + keyLine);
-                    }
-                    if (stringType === 2) {
-                        if (isNumberText(text)) {
-                            parser.onKeyValue(curKey, Number(text));
-                        } else if (isBoolText(text)) {
-                            parser.onKeyValue(curKey, BoolTextToBool(text));
-                        } else {
-                            parser.onKeyValue(curKey, text);
-                        }
-                    } else {
-                        parser.onKeyValue(curKey, text);
-                    }
-                    curKey = null;
-                }
-            case BracketType.方括号:
-                parser.onValue(text);
-                break;
-            default:
-                break;
-        }
-    }
 
     function textInMark(ch:'"'|"'") {
         let right = i+1
         do {
             right = code.indexOf(ch,right)
+        }while (code.charAt(right-1)=='\\')
+
+        let text = code.slice(i+1,right)
+        if (parser.onKey(text)){
+            keyLine = lineCount;
+        } else {
+            if (keyLine !== lineCount) {
+                throw new Error('Key must be on the same line of the value at line ' + keyLine);
+            }
+            parser.onValue(text)
         }
-        while (code.charAt(right-1)=='\\')
-        curText = code.slice(i+1,right);
-        
         i = right
-        aText(curText)
+    }
+
+    function textUnMark() {
+        let right = i
+        while (isCharSimple(code.charAt(right+1)) || isCharSimple(code.charAt(right)+code.charAt(right+1))) {
+            right++
+        }
+        let text = code.slice(i,right)
+        if (parser.onKey(text)){
+            keyLine = lineCount;
+        } else {
+            if (keyLine !== lineCount) {
+                throw new Error('Key must be on the same line of the value at line ' + keyLine);
+            }
+            parser.onValue(text)
+        }
+        i = right
     }
 
     /** 开启新的括号 */
     function intoBracket(bracketType:BracketType) {
-        if (curKey === null) {
-            throw new Error('Block must have a key at line ' + lineCount + ' offset ' + i);
-        }
-
-        parser.onBlock(curKey, bracketType);
-        curKey = null;
+        parser.onBlock(bracketType);
         stack++;
     }
 
@@ -237,12 +213,7 @@ export function parse(code:string, parser:vdfDecoder) {
     }
 
     function singleCh(ch:string) {
-        if (inString) {
-            textBuilding(ch)
-        } else if (ch == '#' && code.slice(i,i+5)=='#base'){
-            i += 4;
-            curKey = '#base'
-        } else if (ch === '"' || ch === "'") {
+        if (ch === '"' || ch === "'") {
             textInMark(ch)
         } else if (ch === '{') {
             intoBracket(BracketType.花括号)
@@ -270,11 +241,13 @@ export function parse(code:string, parser:vdfDecoder) {
             } else {
                 i = newIndex - 1
             }
+        } else if (ch == '#' && code.slice(i,i+5)=='#base'){
+            i += 4;
+            if (parser.onKey('#base')){
+                keyLine = lineCount;
+            }
         } else {
-            inString = true;
-            stringType = 2;
-            curText = '';
-            i -= 1;
+            textUnMark()
         }
     }
 };
