@@ -42,12 +42,14 @@ export class vdfDecoder {
     }
 
     /** 存入一个键 */
-    onKey(key:string): boolean {
-        if (this.key)
+    onKey(text:string): boolean {
+        if (this.key){
+            this.onValue(text)
             return false;
-
-        this.key = key
-        return true
+        } else {
+            this.key = text
+            return true
+        }
     }
     /** 写入值 */
     onValue(text:string) {
@@ -132,6 +134,12 @@ export class vdfDecoder {
         }
     };
 
+    onFinish(){
+        if (this.key !== null) {
+            throw new Error('Key \"' + this.key + "\" doesn't have a value");
+        }
+    }
+
     getBlockType():BracketType {
         return this.block.type
     }
@@ -140,22 +148,13 @@ export class vdfDecoder {
 /** 分解一个字符串转化为json对象 */
 export function parse(code:string, parser:vdfDecoder) {
     'use strict';
-    let i = 0,
-        /** 索引所在行数 */
-        keyLine = 0, 
-        /** 当前处理到的行数 */
-        lineCount = 1,
-        /** 深度 */
-        stack = 0;
+    let i = 0;
 
     for (i; i < code.length; i ++) {
         singleCh(code.charAt(i))
     }
 
-    // if (curKey !== null) {
-    //     throw new Error('Key \"' + curKey + "\" doesn't have a value");
-    // }
-
+    parser.onFinish()
     return;
 
     function textInMark(ch:'"'|"'") {
@@ -165,14 +164,7 @@ export function parse(code:string, parser:vdfDecoder) {
         }while (code.charAt(right-1)=='\\')
 
         let text = code.slice(i+1,right)
-        if (parser.onKey(text)){
-            keyLine = lineCount;
-        } else {
-            if (keyLine !== lineCount) {
-                throw new Error('Key must be on the same line of the value at line ' + keyLine);
-            }
-            parser.onValue(text)
-        }
+        parser.onKey(text)
         i = right
     }
 
@@ -182,51 +174,29 @@ export function parse(code:string, parser:vdfDecoder) {
             right++
         }
         let text = code.slice(i,right)
-        if (parser.onKey(text)){
-            keyLine = lineCount;
-        } else {
-            if (keyLine !== lineCount) {
-                throw new Error('Key must be on the same line of the value at line ' + keyLine);
-            }
-            parser.onValue(text)
-        }
+        parser.onKey(text)
         i = right
     }
 
-    /** 开启新的括号 */
-    function intoBracket(bracketType:BracketType) {
-        parser.onBlock(bracketType);
-        stack++;
-    }
-
-    /** 结束一个括号 */
-    function finishBracket(bracketType:BracketType) {
-        if (stack === 0) {
-            throw new Error('Block mismatch at line ' + lineCount);
-        }
-        let blockType = parser.getBlockType();
-        if (blockType != bracketType)
-            throw new Error('Block mismatch at line ' + lineCount + ' (Expected block type ' + bracketType + ')');
-
-        parser.onEndBlock();
-        stack--;
-    }
-
     function singleCh(ch:string) {
-        if (ch === '"' || ch === "'") {
-            textInMark(ch)
-        } else if (ch === '{') {
-            intoBracket(BracketType.花括号)
-        } else if (ch === '}') {
-            finishBracket(BracketType.花括号)
-        } else if (ch === '[') {
-            intoBracket(BracketType.方括号)
-        } else if (ch === ']') {
-            finishBracket(BracketType.方括号)
-        } else if (ch === '\n') {
-            lineCount += 1;
+        if (ch === '\n') {
+            // lineCount += 1;
+            return;
         } else if (ch === '\r' || ch === ' ' || ch === '\t') {
             //break;
+            return;
+        } else if (ch === '"' || ch === "'") {
+            textInMark(ch)
+            return;
+        } else if (ch === '}' || ch === ']') {
+            parser.onEndBlock()
+            return;
+        } else if (ch === '{') {
+            parser.onBlock(BracketType.花括号);
+            return;
+        } else if (ch === '[') {
+            parser.onBlock(BracketType.方括号);
+            return;
         } else if (ch === '/' && code.charAt(i + 1) === '/') {
             let newIndex = code.indexOf('\n',i)
             if (newIndex == -1){
@@ -243,9 +213,7 @@ export function parse(code:string, parser:vdfDecoder) {
             }
         } else if (ch == '#' && code.slice(i,i+5)=='#base'){
             i += 4;
-            if (parser.onKey('#base')){
-                keyLine = lineCount;
-            }
+            parser.onKey('#base')
         } else {
             textUnMark()
         }

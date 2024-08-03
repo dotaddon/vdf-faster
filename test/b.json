@@ -1,8 +1,36 @@
 {
-  "depth": [],
-  "block": null,
-  "stack": 0,
+  "depth": [
+    {
+      "key": "root",
+      "element": {
+        "root1": {
+          "root2": {
+            "key": "value"
+          }
+        }
+      },
+      "type": 0
+    }
+  ],
+  "block": {
+    "key": "root",
+    "element": {
+      "root1": {
+        "root2": {
+          "key": "value"
+        }
+      }
+    },
+    "type": 0
+  },
+  "key": null,
+  "strType": true,
   "root": {
+    "root1": {
+      "root2": {
+        "key": "value"
+      }
+    },
     "DOTAUnits": {
       "Version": "1",
       "npc_dota_announcer_aghanim": {
