@@ -22,8 +22,6 @@ export class vdfDecoder {
     private depth: BlockInfo[]
     /** 当前修改的括号块 */
     private block: BlockInfo
-
-    private stack:number  = 0
     constructor(
         public root: any = {},
         public baseList: string[] = []
@@ -48,8 +46,14 @@ export class vdfDecoder {
     /** 写入值 */
     onValue(value:any) {
         let block = this.block
-        if (block.type == BracketType.方括号)
+        if (block.type != BracketType.方括号)
+                return;
+
+        if (isNumberText(value)) {
+            block.element.push(Number(value));
+        } else {
             block.element.push(value);
+        }
     };
     /** 新进一个括号块 */
     onBlock(key:string, type:BracketType) {
@@ -94,11 +98,6 @@ export class vdfDecoder {
     getBlockType():BracketType {
         return this.block.type
     }
-
-    onFinish(){
-        this.block = null as any
-        this.depth = []
-    }
 }
 
 /** 分解一个字符串转化为json对象 */
@@ -128,7 +127,6 @@ export function parse(code:string, parser:vdfDecoder) {
         throw new Error('Key \"' + curKey + "\" doesn't have a value");
     }
 
-    parser.onFinish()
     return;
 
     /** 继续构建当前文本 */
@@ -155,7 +153,7 @@ export function parse(code:string, parser:vdfDecoder) {
                     throw new Error('Invalid escape character at line ' + lineCount);
             }
             i += 1;
-        } else if ((ch === '\"' && stringType === 0) || (ch === "'" && stringType === 1) || (stringType === 2 && !isCharSimple(ch))) {
+        } else if ((ch === '"' && stringType === 0) || (ch === "'" && stringType === 1) || (stringType === 2 && !isCharSimple(ch))) {
             switch (parser.getBlockType()) {
                 case BracketType.花括号:
                     if (curKey === null) {
@@ -182,11 +180,7 @@ export function parse(code:string, parser:vdfDecoder) {
                         curKey = null;
                     }
                 case BracketType.方括号:
-                    if (isNumberText(curText)) {
-                        parser.onValue(Number(curText));
-                    } else {
-                        parser.onValue(curText);
-                    }
+                    parser.onValue(curText);
                     break;
                 default:
                     break;
@@ -232,7 +226,7 @@ export function parse(code:string, parser:vdfDecoder) {
         } else if (ch == '#' && code.slice(i,5)=='#base'){
             i += 4;
             curKey = '#base'
-        } else if (ch === '\"') {
+        } else if (ch === '"') {
             inString = true;
             stringType = 0;
             curText = '';
