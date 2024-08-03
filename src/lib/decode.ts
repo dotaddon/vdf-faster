@@ -26,7 +26,7 @@ export class vdfDecoder {
     constructor(
         /** value的类型保持string。false将把bool和数字转化为对应类型 */
         public strType:boolean = true,
-        public root: any = {},
+        public root: Record<string,object> = {},
         public baseList: string[] = []
     ){
         this.block = {

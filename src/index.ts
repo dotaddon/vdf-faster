@@ -1,46 +1,45 @@
 import { parse, vdfDecoder } from './lib/decode';
+import { encode as en }from './lib/encode'
 
-export function decode(code:string) {
+/** 将valve data format的kv转为json对象
+ * @param code 转义对象
+ * @param keepStringValue value的类型保持string。false将把bool和数字转化为对应类型
+ * @returns 
+ */
+export function decode(code:string, keepStringValue?:boolean):{
+    /** 输出的文本 */
+    data:Record<string, object>
+    /** 依赖的文件名 */
+    base:string[]
+} {
     'use strict';
-    var decoder = new vdfDecoder();
+    var decoder = new vdfDecoder(keepStringValue);
 
     parse(code, decoder);
-    return decoder;
+    return {
+        data: decoder.root,
+        base: decoder.baseList
+    };
 };
 
-var vdf = require('./lib/encode');
-
 /**
- * 将数组或obj对象转为valve的KV的字符串
- * 
- * obj:转义对象
- * 
- * compact:是否换行
+ * 将json对象转为valve data format的kv
+ * @param obj 转义对象
+ * @param compact 是否换行
+ * @returns 
  */
-export function encode(obj:object, compact:boolean ){
+export function encode(obj:any, compact?:boolean ){
     'use strict';
-    let depth = (compact)? -1 : 0;
-    return vdf.encode( obj, depth)
+    let depth = compact ? -1 : 0;
+    return en( obj, depth)
 }
 
-var BASETH = require('./lib/baseth');
-
-/**
- * 导出文件中 用 #base 导入其他文件的列表
- * 
- * 返回数组
- */
-export function baseth(code ){
-    'use strict';
-    return BASETH.baseth( code)
+/** 拆分vdf对象 */
+export function depart<T extends object>(obj:T, limit:number = 50):T[] {
+    let depth:any = []
+    let data = Object.entries(obj)
+    while (data.length > 0) {
+        depth.push(Object.fromEntries(data.splice(0,limit)))
+    }
+    return depth
 }
-
-var DEBASE = require('./lib/debase');
-
-/**
- * 转义 字符串 转为 数组
- */ 
-export function debase(code:string) {
-    'use strict';
-    return DEBASE.debase(code)[0];
-};

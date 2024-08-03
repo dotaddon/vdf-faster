@@ -22,7 +22,7 @@ function encode_a(arr:Array<any>, depth:number){
 	return str+newLine+dp
 }
 
-export function encode(value, depth){
+export function encode(value:any, depth:number){
     'use strict';
     depth += depth==-1? 0 : 1 ;
     let newLine = depth==-1? ' ' : '\n' ;
