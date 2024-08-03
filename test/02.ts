@@ -1,11 +1,11 @@
 import * as vdf from '../src'
 import {readFileSync, writeFileSync} from 'fs'
 
-const file = 'npc/unit.txt'
+const file = 'test/npc/unit.txt'
 const data = readFileSync(file, 'utf8')
 let result:any
 
-console.time('b')
+console.time('decode')
 result = vdf.decode(data)
-console.timeEnd('b')
-writeFileSync('npc/b.json', JSON.stringify(result,null,'  '), 'utf8')
+console.timeEnd('decode')
+writeFileSync('test/b.json', JSON.stringify(result,null,'  '), 'utf8')

@@ -1,5 +1,5 @@
 
-export function isStringKeyword(str:string) {
+export function isBoolText(str:string) {
     'use strict';
     switch (str) {
     case 'true':
