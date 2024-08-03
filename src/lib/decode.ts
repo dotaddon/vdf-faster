@@ -5,76 +5,120 @@ const enum BracketType {
     花括号 = 0,
     方括号 = 1,
 }
+declare type BlockInfo = {
+    key:string
+} & ({
+    element:Record<string,any>
+    type:BracketType.花括号
+} | {
+    element:any[]
+    type:BracketType.方括号
+}
+
+)
+
 export class vdfDecoder {
-    private depths: any[]
-    private depth:number
+    /** 括号块的堆栈 */
+    private depth: BlockInfo[]
+    /** 当前修改的括号块 */
+    private block: BlockInfo
+
+    private stack:number  = 0
     constructor(
         public root: any = {},
         public baseList: string[] = []
     ){
-        this.depths = [root];
-        this.depth = 0;
+        this.block = {
+            key:'root',
+            element: root,
+            type:BracketType.花括号
+        };
+        this.depth = [this.block];
     }
+    /** 增加子目录 */
     onBase(path:string) {
         this.baseList.push(path)
     }
+    /** 写入键值 */
     onKeyValue(key:string, value:any) {
-        this.depths[this.depth][key] = value;
+        let block = this.block
+        if (block.type == BracketType.花括号)
+            block.element[key] = value;
     };
-    onValue(value) {
-        this.depths[this.depth].push(value);
+    /** 写入值 */
+    onValue(value:any) {
+        let block = this.block
+        if (block.type == BracketType.方括号)
+            block.element.push(value);
     };
-    onBlock(key, type) {
-        this.depth += 1;
+    /** 新进一个括号块 */
+    onBlock(key:string, type:BracketType) {
         switch (type) {
-        case 0:
-            this.depths.push({});
-            break;
-        case 1:
-            this.depths.push([]);
-            break;
-        default:
-            throw new Error('Unknown block type: ' + type);
-        }
-    };
-    onEndBlock(key:string, type:BracketType, ParentType:BracketType) {
-        let d = (this.depth -= 1);
-        switch (ParentType) {
-            case 0:
-                let obj = this.depths.pop();
-                this.depths[d][key] = obj;
+            case BracketType.花括号:
+                this.block = {
+                    key,
+                    element:{},
+                    type
+                }
                 break;
-            case 1:
-                this.depths[d].push(this.depths.pop());
+            case BracketType.方括号:
+                this.block = {
+                    key,
+                    element:[],
+                    type
+                }
                 break;
             default:
                 throw new Error('Unknown block type: ' + type);
         }
+
+        this.depth.push(this.block);
     };
+    
+    /** 结束一个括号块 */
+    onEndBlock() {
+        let block = this.depth.pop()!;
+        let parent = this.block = this.depth[this.depth.length - 1]
+        switch (parent.type) {
+            case BracketType.花括号:
+                parent.element[block.key] = block.element;
+                break;
+            case BracketType.方括号:
+                parent.element.push(block.element);
+                break;
+            default:
+                throw new Error('Unknown block type: ');
+        }
+    };
+
+    getBlockType():BracketType {
+        return this.block.type
+    }
+
+    onFinish(){
+        this.block = null as any
+        this.depth = []
+    }
 }
 
+/** 分解一个字符串转化为json对象 */
 export function parse(code:string, parser:vdfDecoder) {
     'use strict';
     let i = 0,
-        /** 嵌套对应的键 */
-        depthsKey:string[] = [''],
-        /** 嵌套类型 */
-        depthStack:BracketType[] = [0],
-        /** 嵌套的深度 */
-        depth = 0,
         /** i的位置在字符串中 */
         inString = false, 
         /** 字符串类型 */
-        stringType = 0, 
+        stringType = 0,
         /** 当前字符串内容 */
-        curText = '',
+        curText:string = '',
         /** 当前文本的索引 */
-        curKey = <string|null>null, 
+        curKey:string|null = null, 
         /** 索引所在行数 */
         keyLine = 0, 
         /** 当前处理到的行数 */
-        lineCount = 1, 
-        tmpStr;
+        lineCount = 1,
+        /** 深度 */
+        stack:number = 0;
 
     for (i; i < code.length; i ++) {
         singleCh(code.charAt(i))
@@ -84,10 +128,11 @@ export function parse(code:string, parser:vdfDecoder) {
         throw new Error('Key \"' + curKey + "\" doesn't have a value");
     }
 
+    parser.onFinish()
     return;
 
     /** 继续构建当前文本 */
-    function textBuilding(ch:string) {
+    function textBuilding(ch:string):boolean|undefined {
         
         if (ch === '\\') {
             if (i === code.length - 1) {
@@ -111,93 +156,74 @@ export function parse(code:string, parser:vdfDecoder) {
             }
             i += 1;
         } else if ((ch === '\"' && stringType === 0) || (ch === "'" && stringType === 1) || (stringType === 2 && !isCharSimple(ch))) {
-            if (depthStack[depth] === 0) {
-                if (curKey === null) {
-                    curKey = curText;
-                    keyLine = lineCount;
-                } else if (curKey == '#base'){
-                    parser.onBase(curText)
-                    curKey = null;
-                } else {
-                    if (keyLine !== lineCount) {
-                        throw new Error('Key must be on the same line of the value at line ' + keyLine);
-                    }
-                    if (stringType === 2) {
-                        if (isNumberText(curText)) {
-                            parser.onKeyValue(curKey, Number(curText));
-                        } else if (isBoolText(curText)) {
-                            parser.onKeyValue(curKey, BoolTextToBool(curText));
+            switch (parser.getBlockType()) {
+                case BracketType.花括号:
+                    if (curKey === null) {
+                        curKey = curText;
+                        keyLine = lineCount;
+                    } else if (curKey == '#base'){
+                        parser.onBase(curText)
+                        curKey = null;
+                    } else {
+                        if (keyLine !== lineCount) {
+                            throw new Error('Key must be on the same line of the value at line ' + keyLine);
+                        }
+                        if (stringType === 2) {
+                            if (isNumberText(curText)) {
+                                parser.onKeyValue(curKey, Number(curText));
+                            } else if (isBoolText(curText)) {
+                                parser.onKeyValue(curKey, BoolTextToBool(curText));
+                            } else {
+                                parser.onKeyValue(curKey, curText);
+                            }
                         } else {
                             parser.onKeyValue(curKey, curText);
                         }
-                    } else {
-                        parser.onKeyValue(curKey, curText);
+                        curKey = null;
                     }
-                    curKey = null;
-                }
-            } else if (depthStack[depth] === 1) {
-                if (isNumberText(curText)) {
-                    parser.onValue(Number(curText));
-                } else {
-                    parser.onValue(curText);
-                }
+                case BracketType.方括号:
+                    if (isNumberText(curText)) {
+                        parser.onValue(Number(curText));
+                    } else {
+                        parser.onValue(curText);
+                    }
+                    break;
+                default:
+                    break;
             }
             inString = false;
             if (stringType === 2) {
                 i -= 1;
             }
+            return false
         } else {
             curText += ch;
+            return true
         }
     }
 
     /** 开启新的括号 */
     function intoBracket(bracketType:BracketType) {
-        if (depthStack[depth] === 0) {
-            if (curKey === null) {
-                throw new Error('Block must have a key at line ' + lineCount + ' offset ' + i);
-            }
+        if (curKey === null) {
+            throw new Error('Block must have a key at line ' + lineCount + ' offset ' + i);
         }
 
-        depthsKey.push(curKey!);
-
-        switch (bracketType) {
-            case BracketType.花括号:
-                depthStack.push(0);
-                parser.onBlock(curKey, 0);
-                break;
-            case BracketType.方括号:
-                depthStack.push(1);
-                parser.onBlock(curKey, 1);
-                break;
-        }
+        parser.onBlock(curKey, bracketType);
         curKey = null;
-        depth += 1;
+        stack++;
     }
 
     /** 结束一个括号 */
     function finishBracket(bracketType:BracketType) {
-        if (depth === 0) {
+        if (stack === 0) {
             throw new Error('Block mismatch at line ' + lineCount);
         }
-        if (depthStack[depth] !== 0) {
-            throw new Error('Block mismatch at line ' + lineCount + ' (Expected block type ' + depthStack[depth] + ')');
-        }
+        let blockType = parser.getBlockType();
+        if (blockType != bracketType)
+            throw new Error('Block mismatch at line ' + lineCount + ' (Expected block type ' + bracketType + ')');
 
-        tmpStr = depthsKey.pop();
-
-        switch (bracketType) {
-            case BracketType.花括号:
-                parser.onEndBlock(tmpStr, 0, depthStack[depth-1]);
-                break;
-            case BracketType.方括号:
-                parser.onEndBlock(tmpStr, 1, depthStack[depth-1]);
-                break;
-        }
-
-        depthStack.pop();
-
-        depth -= 1;
+        parser.onEndBlock();
+        stack--;
     }
 
     function singleCh(ch:string) {
@@ -222,31 +248,23 @@ export function parse(code:string, parser:vdfDecoder) {
             intoBracket(BracketType.方括号)
         } else if (ch === ']') {
             finishBracket(BracketType.方括号)
-        } else if (ch === '\n' || ch === '\r' || ch === ' ' || ch === '\t') {
-            if (ch === '\n') {
-                lineCount += 1;
-            }
+        } else if (ch === '\n') {
+            lineCount += 1;
+        } else if (ch === '\r' || ch === ' ' || ch === '\t') {
             //break;
         } else if (ch === '/' && code.charAt(i + 1) === '/') {
-            while (i < code.length && code.charAt(i) !== '\n') {
-                i += 1;
-            }
-            if (code.charAt(i) === '\n') {
-                i -= 1;
+            let newIndex = code.indexOf('\n',i)
+            if (newIndex == -1){
+                i = code.length -1
+            } else {
+                i = newIndex - 1
             }
         } else if (ch === '/' && code.charAt(i + 1) === '*') {
-            i += 1;
-            while (true) {
-                i += 1;
-                ch = code.charAt(i);
-                if (ch === '*' && code.charAt(i + 1) === '/') {
-                    i += 1;
-                    break;
-                } else if (ch === '\n') {
-                    lineCount += 1;
-                } else if (i >= code.length) {
-                    throw new Error('Comment block is not closed at line ' + lineCount);
-                }
+            let newIndex = code.indexOf('*/',i)
+            if (newIndex == -1){
+                i = code.length -1
+            } else {
+                i = newIndex - 1
             }
         } else {
             inString = true;
