@@ -1,13 +1,10 @@
 {
   "name": "vdf-faster",
   "description": "a tools for turn to json to dota2's kv file.//Valve's KeyValues Text File Format serialization library",
-  "version": "0.1.6",
-  "homepage": "https://gitee.com/takegine/dota-js-kv",
-  "repository": {
-    "type": "git",
-    "url": "https://gitee.com/takegine/dota-js-kv"
-  },
+  "version": "0.2.0",
+  "homepage": "https://e.coding.net/g-ztdo6466/dota2GalleryDev/vdf-faster",
   "author": "西索酱",
+  "license": "MIT",
   "tags": [
     "serialize",
     "parser",
@@ -19,14 +16,21 @@
     "dota",
     "json"
   ],
-  "main": "./index.js",
-  "issues": {
-    "url": "https://gitee.com/takegine/dota-js-kv/issues"
+  "files": [
+    "dist/**"
+  ],
+  "main": "dist/index",
+  "types": "dist/index",
+  "directories": {
+    "lib": "lib"
   },
   "devDependencies": {
     "@types/node": "18.18.0"
   },
   "volta": {
     "node": "18.18.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

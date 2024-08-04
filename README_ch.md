@@ -1,4 +1,4 @@
-# vdf-parser2
+# vdf-faster
 
 #### 介绍
 nodejs的依赖，用于在`js的object`和`valve 的KV键值对字符串`之间转换。
@@ -14,7 +14,7 @@ npm install dota-js-kv
 #### 使用说明
 
 ```ts
-import vdf from 'vdf-parser2';
+import vdf from 'vdf-faster';
 // 转为kv
 vdf.encode(object, compact)
 
