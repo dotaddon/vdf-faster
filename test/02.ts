@@ -1,36 +1,13 @@
 import { basename } from 'path'
 import * as vdf from '../src'
 import { readFileSync, writeFileSync } from 'fs'
-import { Vdfer } from '../src/vdfer'
+import { vdfer } from '../src/vdfer'
 
-// const file = 'test/npc/npc_units_custom.txt'
-const file = 'test/npc/unit.txt'
+const file = 'test/npc/npc_units_custom.txt'
+// const file = 'test/npc/unit.txt'
 // const file = 'test/npc/npc_heros_custom.txt'
 const source = readFileSync(file, 'utf8')
 
-
-console.time('base')
-
-let vdfer = new Vdfer().init(source)
-vdfer.getBase()
-.then(base=>{
-    console.log(base)
-console.timeEnd('base')
-})
-
-
-console.time('keys')
-vdfer.getTree().then(keys=>{
-
-    console.log(keys)
-    console.timeEnd('keys')
-    
-    console.time('data')
-    vdfer.getData(keys[0]).then(data=>{
-        console.log(data)
-        console.timeEnd('data')
-    })
-})
 
 
 console.time('decode')
@@ -44,8 +21,37 @@ let result = vdf.decode(source)
 //     }
     
 // })
-// console.table(result.data)
+let key = Object.keys(result.data)[0]
+console.log(key)
+console.table(Object.keys(result.data[key]))
 console.timeEnd('decode')
+
+
+console.time('base')
+
+let ent = new vdfer().init(source)
+// let ent = new vdfer().init(result.data[Object.keys(result.data)[0]])
+let base = ent.getBase()
+
+console.log(base)
+console.timeEnd('base')
+
+
+console.time('keys')
+let keys = ent.getTree()
+
+console.table(keys)
+console.timeEnd('keys')
+
+console.time('data')
+console.log(keys[0])
+let data = ent.getDataJson(keys[0])
+
+console.log(data)
+console.timeEnd('data')
+
+// let a =vdfer.depart(50)
+// console.log(a)
 // writeFileSync('test/b.json', JSON.stringify(result,null,'  '), 'utf8')
 
 // console.time('encode')

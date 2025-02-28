@@ -1,6 +1,7 @@
 import { vdfDecoder } from './lib/decode';
 export { vdfDecoder } from './lib/decode';
 import { encode as en }from './lib/encode'
+export { vdfer } from './vdfer';
 
 /** 将valve data format的kv转为json对象
  * @param code 转义对象
