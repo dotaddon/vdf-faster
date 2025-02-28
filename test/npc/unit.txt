@@ -3,7 +3,17 @@
 
 
 "root1" {
-    "root2" {
+    "hero1" {
         "key" "value"
+        "attack" {
+            "min" "20"
+            "max" "45"
+        }
+    }
+    "hero2" {
+        "attack" {
+            "min" "11"
+            "max" "22"
+        }
     }
 }

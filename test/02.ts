@@ -1,25 +1,52 @@
 import { basename } from 'path'
 import * as vdf from '../src'
-import {readFileSync, writeFileSync} from 'fs'
+import { readFileSync, writeFileSync } from 'fs'
+import { Vdfer } from '../src/vdfer'
 
-const file = 'test/npc/npc_units_custom.txt'
-const data = readFileSync(file, 'utf8')
+// const file = 'test/npc/npc_units_custom.txt'
+const file = 'test/npc/unit.txt'
+// const file = 'test/npc/npc_heros_custom.txt'
+const source = readFileSync(file, 'utf8')
+
+
+console.time('base')
+
+let vdfer = new Vdfer().init(source)
+vdfer.getBase()
+.then(base=>{
+    console.log(base)
+console.timeEnd('base')
+})
+
+
+console.time('keys')
+vdfer.getTree().then(keys=>{
+
+    console.log(keys)
+    console.timeEnd('keys')
+    
+    console.time('data')
+    vdfer.getData(keys[0]).then(data=>{
+        console.log(data)
+        console.timeEnd('data')
+    })
+})
 
 
 console.time('decode')
-let result = vdf.decode(data)
-result.base.forEach(e=>{
-    let filed = file.replace(basename(file), e)
-    let _re = vdf.decode(readFileSync(filed, 'utf8'))
-    result.data = {
-        ...result.data,
-        ..._re.data
-    }
+let result = vdf.decode(source)
+// result.base.forEach(e=>{
+//     let filed = file.replace(basename(file), e)
+//     let _re = vdf.decode(readFileSync(filed, 'utf8'))
+//     result.data = {
+//         ...result.data,
+//         ..._re.data
+//     }
     
-})
+// })
+// console.table(result.data)
 console.timeEnd('decode')
-
-writeFileSync('test/b.json', JSON.stringify(result,null,'  '), 'utf8')
+// writeFileSync('test/b.json', JSON.stringify(result,null,'  '), 'utf8')
 
 // console.time('encode')
 // let root = vdf.depart(result.data.DOTAUnits, 190)
