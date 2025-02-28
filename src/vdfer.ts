@@ -18,8 +18,15 @@ export class Vdfer {
     private base: string[] = [];
     /** 解析完成的数据 */
     private data: Record<string, object> = {};
+    /** 原始数据Map，key为一级键，value为对应的原始VDF字符串 */
+    private rawDataMap: Map<string, string> = new Map();
+    /** 当前解析的块 */
+    private block: any = null;
+    /** 当前解析的键 */
+    private key: string | null = null;
+    /** 解析深度 */
+    private depth: any[] = [];
     private options: VdferOptions;
-    private decoder: any;
 
     constructor(options: VdferOptions = {}) {
         this.options = {
@@ -37,29 +44,62 @@ export class Vdfer {
     init(input: string | object): Vdfer {
         if (typeof input === 'string') {
             this.sourceCode += input;
-            this.initDecoder();
-            this.parseVDF();
+            this.parseInitial();
         } else {
             this.sourceJson = {...this.sourceJson,...input} as Record<string, object>;
         }
         return this;
     }
 
-    private initDecoder(): void {
-        this.decoder = {
-            root: {} as Record<string, object>,
-            depth: [] as any[],
-            block: null as any,
-            key: null as string | null,
-            strType: this.options.keepStringValue
-        };
+    private parseInitial(): void {
+        // 解析base指令
+        this.parseBase(this.sourceCode);
+        
+        // 解析一级key和对应的原始数据
+        let i = 0;
+        let inQuote = false;
+        let quoteChar = '';
+        let currentKey = '';
+        let bracketDepth = 0;
+        let blockStart = -1;
 
-        this.decoder.block = {
-            key: 'root',
-            element: this.decoder.root,
-            type: 0 // 花括号类型
-        };
-        this.decoder.depth = [this.decoder.block];
+        while (i < this.sourceCode.length) {
+            const ch = this.sourceCode[i];
+
+            if (!inQuote) {
+                if (ch === '{' && bracketDepth === 1) {
+                    blockStart = i;
+                }
+                if (ch === '{') {
+                    bracketDepth++;
+                } else if (ch === '}') {
+                    bracketDepth--;
+                    if (bracketDepth === 1 && blockStart !== -1) {
+                        // 提取并存储原始数据块，去掉首尾的花括号
+                        const blockContent = this.sourceCode.slice(blockStart + 1, i);
+                        if (currentKey && !this.rawDataMap.has(currentKey)) {
+                            this.rawDataMap.set(currentKey, blockContent);
+                            if (!this.keys.includes(currentKey)) {
+                                this.keys.push(currentKey);
+                            }
+                        }
+                        currentKey = '';
+                        blockStart = -1;
+                    }
+                } else if ((ch === '"' || ch === "'") && bracketDepth === 1) {
+                    inQuote = true;
+                    quoteChar = ch;
+                    currentKey = '';
+                }
+            } else {
+                if (ch === quoteChar && this.sourceCode[i - 1] !== '\\') {
+                    inQuote = false;
+                } else {
+                    currentKey += ch;
+                }
+            }
+            i++;
+        }
     }
 
     private parseBase(code: string): void {
@@ -95,72 +135,6 @@ export class Vdfer {
                 }
             }
         }
-    }
-
-    private parseKeys(code: string): void {
-        let i = 0;
-        let inQuote = false;
-        let quoteChar = '';
-        let currentKey = '';
-        let bracketDepth = 0;
-
-        while (i < code.length) {
-            const ch = code[i];
-
-            if (!inQuote) {
-                if (ch === '{') {
-                    bracketDepth++;
-                } else if (ch === '}') {
-                    bracketDepth--;
-                } else if ((ch === '"' || ch === "'") && bracketDepth === 1) {
-                    inQuote = true;
-                    quoteChar = ch;
-                    currentKey = '';
-                }
-            } else {
-                if (ch === quoteChar && code[i - 1] !== '\\') {
-                    inQuote = false;
-                    if (bracketDepth === 1 && currentKey && !this.keys.includes(currentKey)) {
-                        this.keys.push(currentKey);
-                    }
-                } else {
-                    currentKey += ch;
-                }
-            }
-            i++;
-        }
-    }
-    private async parseChunk(code: string): Promise<void> {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                this.parse(code, this.decoder);
-                resolve();
-            }, 0);
-        });
-    }
-
-
-    private async ensureFullParsed(): Promise<void> {
-        if (Object.keys(this.data).length > 0) return;
-        await this.parseVDF();
-    }
-
-    /**
-     * 解析VDF字符串
-     * @param code VDF字符串
-     */
-    private async parseVDF() {
-        this.initDecoder();
-        
-        // 解析base指令和keys
-        this.parseBase(this.sourceCode);
-        this.parseKeys(this.sourceCode);
-        
-        // 解析VDF内容
-        this.parse(this.sourceCode, this.decoder);
-        
-        // 更新实例数据
-        this.data = this.decoder.root;
     }
 
     /**
@@ -293,7 +267,6 @@ export class Vdfer {
      * @throws 如果数据未初始化
      */
     async getTree(): Promise<string[]> {
-        await this.ensureFullParsed();
         return this.keys;
     }
 
@@ -303,7 +276,29 @@ export class Vdfer {
      * @throws 如果数据未初始化
      */
     async getData(key: string): Promise<object | undefined> {
-        await this.ensureFullParsed();
+        if (this.data[key]) {
+            return this.data[key];
+        }
+
+        const rawData = this.rawDataMap.get(key);
+        if (!rawData) {
+            return undefined;
+        }
+
+        // 初始化解析状态
+        this.block = {
+            key: 'root',
+            element: {},
+            type: 0 // 花括号类型
+        };
+        this.depth = [this.block];
+        this.key = null;
+
+        // 解析数据
+        this.parse(rawData, this);
+        
+        // 存储解析结果
+        this.data[key] = this.block.element;
         return this.data[key];
     }
 
@@ -323,8 +318,12 @@ export class Vdfer {
      */
     async getAllJSON(): Promise<Record<string, object>> {
         this.checkInitialized();
-        let keys = await this.getTree()
-        return Object.fromEntries(keys.map(key => [key, this.getData(key)]));
+        let keys = await this.getTree();
+        const result: Record<string, object> = {};
+        for (const key of keys) {
+            result[key] = await this.getData(key) || {};
+        }
+        return result;
     }
 
     /**
