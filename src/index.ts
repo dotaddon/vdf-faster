@@ -1,4 +1,5 @@
 import { vdfDecoder } from './lib/decode';
+export { vdfDecoder } from './lib/decode';
 import { encode as en }from './lib/encode'
 
 /** 将valve data format的kv转为json对象
@@ -18,8 +19,8 @@ export function decode(code:string, keepStringValue?:boolean):{
         .parse()
         .onFinish();
     return {
-        data: decoder.root,
-        base: decoder.base
+        data: decoder.getAllJson(),
+        base: decoder.getBase()
     };
 };
 

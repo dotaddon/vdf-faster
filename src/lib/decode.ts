@@ -29,9 +29,9 @@ export class vdfDecoder {
     private block: BlockInfo
     private key: string | null
 
-    public root: Record<string, object> = {}
+    private root: Record<string, object> = {}
     /** base依赖 */
-    public base: string[] = []
+    private base: string[] = []
     constructor(
         /** value的类型保持string。false将把bool和数字转化为对应类型 */
         public strType: boolean = true,
@@ -56,6 +56,24 @@ export class vdfDecoder {
             this.singleCh(this.code.charAt(this.i))
         }
         return this
+    }
+
+    /** 获取base依赖 */
+    getBase() {
+        return this.base
+    }
+    /** 获取一个键的值 */
+    getData(key:string) {
+        return this.root[key]
+    }
+
+    /** 获取所有的key */
+    getTree(){
+        return Object.keys(this.root)
+    }
+
+    getAllJson() {
+        return this.root
     }
 
     /** 增加子目录 */
