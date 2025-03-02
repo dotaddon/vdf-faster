@@ -1,5 +1,5 @@
 import { vdfDecoder } from "./lib/decode";
-import { encode }from './lib/encode'
+import { encode } from './lib/encode'
 
 /** Vdfer类的配置选项 */
 interface VdferOptions {
@@ -16,7 +16,7 @@ export class vdfer {
     /** json数据源 */
     private sourceJson: Record<string, object>;
     /** 原始数据Map，key为一级键，value为对应的原始VDF字符串 */
-    private rawDataMap: Map<string, {code?:string,json?:object}> = new Map();
+    private rawDataMap: Map<string, { code?: string, json?: object }> = new Map();
 
     private options: VdferOptions;
 
@@ -42,7 +42,7 @@ export class vdfer {
         return this;
     }
 
-    private parseInitialFinish:boolean = false;
+    private parseInitialFinish: boolean = false;
     private parseInitial(): void {
         if (this.parseInitialFinish)
             return;
@@ -67,10 +67,10 @@ export class vdfer {
                 } else if (ch === '}') {
                     bracketDepth--;
                     if (bracketDepth === 1 && blockStart !== -1) {
-                        let tawData = this.rawDataMap.get(currentKey) ??  {}
+                        let tawData = this.rawDataMap.get(currentKey) ?? {}
                         // 提取并存储原始数据块，去掉首尾的花括号
                         tawData.code = this.sourceCode.slice(blockStart + 1, i);;
-                        this.rawDataMap.set(currentKey,tawData);
+                        this.rawDataMap.set(currentKey, tawData);
                         currentKey = '';
                         blockStart = -1;
                     }
@@ -90,7 +90,7 @@ export class vdfer {
         }
     }
 
-    private parseBaseFinish:boolean = false;
+    private parseBaseFinish: boolean = false;
     private parseBase(): void {
         if (this.parseBaseFinish)
             return;
@@ -112,7 +112,7 @@ export class vdfer {
                 const quote = code[i];
                 i++;
                 const start = i;
-                
+
                 while (i < code.length && code[i] !== quote) {
                     if (code[i] === '\\') {
                         i++; // 跳过转义字符
@@ -146,7 +146,7 @@ export class vdfer {
         this.base.push(path);
     }
 
-    
+
     /** 所有键的列表 */
     private keys: string[]
     /**
@@ -157,7 +157,7 @@ export class vdfer {
         this.parseInitial()
         if (this.keys)
             return this.keys;
-        if (this.sourceCode){
+        if (this.sourceCode) {
             this.keys = [...this.rawDataMap.keys()];
             return this.keys
         }
@@ -198,7 +198,7 @@ export class vdfer {
         if (rawData.code)
             return rawData.code;
         if (rawData.json) {
-            let data = encode(rawData.json,0);
+            let data = encode(rawData.json, 0);
             rawData.code = data;
             return data;
         }
@@ -211,7 +211,7 @@ export class vdfer {
      * @param data 要添加的数据
      * @throws 如果数据未初始化
      */
-    addData(name: string, data: object|string) {
+    addData(name: string, data: object | string) {
         let rawData = this.rawDataMap.get(name) ?? {};
         if (typeof data === 'string') {
             rawData.code = data;
@@ -226,10 +226,10 @@ export class vdfer {
      * 获取完整的JSON数据结构
      * @throws 如果数据未初始化
      */
-    getAllJSON(): Record<string, object> {
+    getAllJson(): Record<string, object> {
         let entries = this.getTree()
-            .map(key=>[key,this.getDataJson(key)])
-            .filter(([,data])=>data)
+            .map(key => [key, this.getDataJson(key)])
+            .filter(([, data]) => data)
 
         return Object.fromEntries(entries);
     }
@@ -238,56 +238,15 @@ export class vdfer {
      * 获取完整的VDF字符串
      * @throws 如果数据未初始化
      */
-    getAllVDF(): string {
+    getAllCode(): string {
         let entries = this.getTree()
-           .map(key=>{
-              let code = this.getDataCode(key);
-              if (code)
-                  return `"${key}" ${code}`
-           })
-           .filter(Boolean)
+            .map(key => {
+                let code = this.getDataCode(key);
+                if (code)
+                    return `"${key}" ${code}`
+            })
+            .filter(Boolean)
         return entries.join('\n')
-    }
-
-    /**
-     * 将对象编码为VDF字符串
-     * @param obj 要编码的对象
-     * @param depth 缩进深度（-1表示紧凑模式）
-     */
-    private encodeVDF(obj: any, depth: number): string {
-        const indent = depth >= 0 ? '\t'.repeat(depth) : '';
-        const newline = depth >= 0 ? '\n' : '';
-
-        if (Array.isArray(obj)) {
-            return this.encodeArray(obj, depth, indent, newline);
-        }
-
-        let result = '';
-        for (const [key, value] of Object.entries(obj)) {
-            result += `${indent}"${key}"`;
-            if (typeof value === 'object' && value !== null) {
-                result += `${newline}${indent}{${newline}`;
-                result += this.encodeVDF(value, depth >= 0 ? depth + 1 : -1);
-                result += `${indent}}${newline}`;
-            } else {
-                result += ` "${value}"${newline}`;
-            }
-        }
-        return result;
-    }
-
-    private encodeArray(arr: any[], depth: number, indent: string, newline: string): string {
-        let result = '';
-        for (const value of arr) {
-            if (typeof value === 'object' && value !== null) {
-                result += `${indent}[${newline}`;
-                result += this.encodeVDF(value, depth >= 0 ? depth + 1 : -1);
-                result += `${indent}]${newline}`;
-            } else {
-                result += `${indent}"${value}"${newline}`;
-            }
-        }
-        return result;
     }
 
     /**
@@ -299,7 +258,7 @@ export class vdfer {
 
     //     const result: Record<string, object>[] = [];
     //     const entries = Object.entries(this.data);
-        
+
     //     while (entries.length > 0) {
     //         result.push(Object.fromEntries(entries.splice(0, limit)));
     //     }
