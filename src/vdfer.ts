@@ -20,14 +20,16 @@ export class vdfer {
 
     private options: VdferOptions;
 
-    constructor(options: VdferOptions = {}) {
+    constructor(options: VdferOptions = {}, rawDataMap?: Map<string, { code?: string, json?: object }>) {
         this.options = {
             keepStringValue: true,
             compact: false,
             ...options
         };
+        if (rawDataMap) {
+            this.rawDataMap = new Map(rawDataMap);
+        }
     }
-
     /**
      * 初始化Vdfer实例
      * @param input VDF字符串或JSON对象
@@ -184,7 +186,11 @@ export class vdfer {
 
         // 解析数据
         if (rawData.code) {
-            let data = new vdfDecoder().source(rawData.code).parse().onFinish().getAllJson();
+            let data = new vdfDecoder(this.options.keepStringValue)
+                .source(rawData.code)
+                .parse()
+                .onFinish()
+                .getAllJson();
             rawData.json = data;
             return data;
         }
@@ -198,7 +204,7 @@ export class vdfer {
         if (rawData.code)
             return rawData.code;
         if (rawData.json) {
-            let data = encode(rawData.json, 0);
+            let data = encode(rawData.json, this.options.compact ? -1 : 1);
             rawData.code = data;
             return data;
         }
@@ -254,14 +260,16 @@ export class vdfer {
      * @param limit 每个部分的最大元素数量
      * @throws 如果数据未初始化
      */
-    // depart(limit: number = 50): Record<string, object>[] {
+    depart(limit: number = 50): vdfer[] {
+        const result: vdfer[] = [];
+        const entries = [...this.rawDataMap.entries()];
 
-    //     const result: Record<string, object>[] = [];
-    //     const entries = Object.entries(this.data);
-
-    //     while (entries.length > 0) {
-    //         result.push(Object.fromEntries(entries.splice(0, limit)));
-    //     }
-    //     return result;
-    // }
+        while (entries.length > 0) {
+            const chunk = entries.splice(0, limit);
+            const newMap = new Map(chunk);
+            const newVdfer = new vdfer(this.options, newMap);
+            result.push(newVdfer);
+        }
+        return result;
+    }
 }
