@@ -7,14 +7,14 @@ nodejs的依赖，用于在`js的object`和`valve 的KV键值对字符串`之间
 #### 安装教程
 
 ```bash
-npm install dota-js-kv
+npm install vdf-faster
 ```
 
 
 #### 使用说明
 
 ```ts
-import vdf from 'vdf-faster';
+import * as vdf from 'vdf-faster';
 // 转为kv
 vdf.encode(object, compact)
 
@@ -22,12 +22,73 @@ vdf.encode(object, compact)
 vdf.decode(fs.readFileSync(file, 'utf-8'))
 ```
 
-#### 参与贡献
+#### API使用说明
 
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
+##### 创建实例
+```ts
+// 创建实例时可以配置选项
+const vdfer = new vdfer({
+    keepStringValue: true, // 是否保持value为字符串类型
+    compact: false // 是否使用紧凑模式输出
+});
+
+// 使用字符串初始化
+vdfer.init(vdfString);
+
+// 或使用对象初始化
+vdfer.init(jsonObject);
+```
+
+##### 获取#base引用
+```ts
+// 获取所有的#base引用路径
+const baseList = vdfer.getBase();
+```
+
+##### 获取数据结构
+```ts
+// 获取所有一级键名列表
+const keys = vdfer.getTree();
+
+// 获取指定键的JSON数据
+const jsonData = vdfer.getDataJson("keyName");
+
+// 获取指定键的VDF字符串
+const vdfString = vdfer.getDataCode("keyName");
+
+// 获取完整的JSON数据
+const allJson = vdfer.getAllJSON();
+
+// 获取完整的VDF字符串
+const allVdf = vdfer.getAllVDF();
+```
+
+##### 添加或更新数据
+```ts
+// 添加JSON数据
+vdfer.addData("newKey", { value: "test" });
+
+// 添加VDF字符串
+vdfer.addData("newKey", '"value" "test"');
+```
+
+#### 高级用法
+
+##### 链式调用
+```ts
+// 支持链式调用
+const result = new vdfer()
+    .init(vdfString)
+    .addData("key1", { value: "test1" })
+    .addData("key2", { value: "test2" })
+    .getAllJSON();
+```
+
+##### 性能优化
+- 使用`getDataJson`和`getDataCode`方法时会缓存结果，重复调用不会重新解析
+- 使用`compact`选项可以生成更紧凑的VDF字符串
+- 大文件处理时建议使用`getTree`获取需要的键，然后按需获取数据
+
 
 
 #### 同类库对比
