@@ -10,7 +10,7 @@ interface VdferOptions {
 }
 
 /** Vdfer类 - 用于处理Valve Data Format (VDF)数据 */
-export class vdfer {
+export class vdfParser {
     /** 字符串数据源 */
     private sourceCode: string;
     /** json数据源 */
@@ -35,7 +35,7 @@ export class vdfer {
      * @param input VDF字符串或JSON对象
      * @returns Vdfer实例
      */
-    init(input: string | object): vdfer {
+    init(input: string | object): vdfParser {
         if (typeof input === 'string') {
             this.sourceCode = input;
         } else {
@@ -260,14 +260,14 @@ export class vdfer {
      * @param limit 每个部分的最大元素数量
      * @throws 如果数据未初始化
      */
-    depart(limit: number = 50): vdfer[] {
-        const result: vdfer[] = [];
+    depart(limit: number = 50): vdfParser[] {
+        const result: vdfParser[] = [];
         const entries = [...this.rawDataMap.entries()];
 
         while (entries.length > 0) {
             const chunk = entries.splice(0, limit);
             const newMap = new Map(chunk);
-            const newVdfer = new vdfer(this.options, newMap);
+            const newVdfer = new vdfParser(this.options, newMap);
             result.push(newVdfer);
         }
         return result;

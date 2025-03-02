@@ -15,8 +15,8 @@ npm install vdf-faster
 
 ```ts
 import * as vdf from 'vdf-faster';
-// 转为kv
-vdf.encode(object, compact)
+// 转为vdfer
+vdf.encode(object)
 
 // 转为object
 vdf.decode(fs.readFileSync(file, 'utf-8'))
@@ -26,8 +26,10 @@ vdf.decode(fs.readFileSync(file, 'utf-8'))
 
 ##### 创建实例
 ```ts
+
+import { vdfParser } from 'vdf-faster';
 // 创建实例时可以配置选项
-const vdfer = new vdfer({
+const vdfer = new vdfParser({
     keepStringValue: true, // 是否保持value为字符串类型
     compact: false // 是否使用紧凑模式输出
 });
@@ -60,7 +62,7 @@ const vdfString = vdfer.getDataCode("keyName");
 const allJson = vdfer.getAllJSON();
 
 // 获取完整的VDF字符串
-const allVdf = vdfer.getAllVDF();
+const allVdf = vdfer.getAllCode();
 ```
 
 ##### 添加或更新数据
@@ -72,12 +74,18 @@ vdfer.addData("newKey", { value: "test" });
 vdfer.addData("newKey", '"value" "test"');
 ```
 
+##### 数据拆分
+```ts
+// 将数据拆分成多个部分，每个部分最多包含50个元素
+const parts = vdfer.depart(50);
+```
+
 #### 高级用法
 
 ##### 链式调用
 ```ts
 // 支持链式调用
-const result = new vdfer()
+const result = new vdfParser()
     .init(vdfString)
     .addData("key1", { value: "test1" })
     .addData("key2", { value: "test2" })
@@ -88,7 +96,7 @@ const result = new vdfer()
 - 使用`getDataJson`和`getDataCode`方法时会缓存结果，重复调用不会重新解析
 - 使用`compact`选项可以生成更紧凑的VDF字符串
 - 大文件处理时建议使用`getTree`获取需要的键，然后按需获取数据
-
+- 对于超大文件，可以使用`depart`方法将数据拆分成多个小块处理
 
 
 #### 同类库对比
@@ -97,7 +105,7 @@ const result = new vdfer()
  | ---| ---|---|
  | fast-vdf | 13.438ms | 忽略掉了#base
  | this | 19.054ms |
- | kvparser | 34.062ms | #base报错
+ | vdferparser | 34.062ms | #base报错
  | vdf-reader | 39.303ms | #base作为key，重复的会覆盖
  | vdf-parser | 42.146ms | #base报错
  | vdf-extra |  50.318ms | 无法解析超长文件

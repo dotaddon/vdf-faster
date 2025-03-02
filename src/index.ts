@@ -1,7 +1,7 @@
 import { vdfDecoder } from './lib/decode';
 export { vdfDecoder } from './lib/decode';
 import { encode as en }from './lib/encode'
-export { vdfer } from './vdfer';
+export { vdfParser } from './vdfer';
 
 /** 将valve data format的kv转为json对象
  * @param code 转义对象
@@ -35,14 +35,4 @@ export function encode(obj:any, compact?:boolean ){
     'use strict';
     let depth = compact ? -1 : 0;
     return en( obj, depth)
-}
-
-/** 拆分vdf对象 */
-export function depart<T extends object>(obj:T, limit:number = 50):T[] {
-    let depth:any = []
-    let data = Object.entries(obj)
-    while (data.length > 0) {
-        depth.push(Object.fromEntries(data.splice(0,limit)))
-    }
-    return depth
 }
