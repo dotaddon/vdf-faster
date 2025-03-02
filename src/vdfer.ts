@@ -14,13 +14,13 @@ export class vdfParser {
     /** 字符串数据源 */
     private sourceCode: string;
     /** json数据源 */
-    private sourceJson: Record<string, object>;
+    private sourceJson: Record<string, any>;
     /** 原始数据Map，key为一级键，value为对应的原始VDF字符串 */
-    private rawDataMap: Map<string, { code?: string, json?: object }> = new Map();
+    private rawDataMap: Map<string, { code?: string, json?: any }> = new Map();
 
     private options: VdferOptions;
 
-    constructor(options: VdferOptions = {}, rawDataMap?: Map<string, { code?: string, json?: object }>) {
+    constructor(options: VdferOptions = {}, rawDataMap?: Map<string, { code?: string, json?: any }>) {
         this.options = {
             keepStringValue: true,
             compact: false,
@@ -44,12 +44,16 @@ export class vdfParser {
         return this;
     }
 
-    private parseInitialFinish: boolean = false;
-    private parseInitial(): void {
-        if (this.parseInitialFinish)
+
+    private parseFinished: boolean = false;
+    /**
+     * 解析VDF数据
+     */
+    private parseFromCode(): void {
+        if (this.parseFinished)
             return;
-        this.parseInitialFinish = true;
-        // 解析一级key和对应的原始数据
+        this.parseFinished = true;
+
         let i = 0;
         let inQuote = false;
         let quoteChar = '';
@@ -60,6 +64,34 @@ export class vdfParser {
         while (i < this.sourceCode.length) {
             const ch = this.sourceCode[i];
 
+            // 处理 #base 指令
+            if (!inQuote && ch === '#' && this.sourceCode.slice(i, i + 5) === '#base') {
+                i += 5; // 跳过 '#base'
+
+                // 跳过空白字符
+                while (i < this.sourceCode.length && /[\s]/.test(this.sourceCode[i])) {
+                    i++;
+                }
+
+                if (i < this.sourceCode.length && (this.sourceCode[i] === '"' || this.sourceCode[i] === "'")) {
+                    const quote = this.sourceCode[i];
+                    i++;
+                    const start = i;
+
+                    while (i < this.sourceCode.length && this.sourceCode[i] !== quote) {
+                        if (this.sourceCode[i] === '\\') i++;
+                        i++;
+                    }
+
+                    if (i < this.sourceCode.length) {
+                        this.addBase(this.sourceCode.slice(start, i));
+                    }
+                }
+                i++;
+                continue;
+            }
+
+            // 处理键值对
             if (!inQuote) {
                 if (ch === '{' && bracketDepth === 1) {
                     blockStart = i;
@@ -69,10 +101,9 @@ export class vdfParser {
                 } else if (ch === '}') {
                     bracketDepth--;
                     if (bracketDepth === 1 && blockStart !== -1) {
-                        let tawData = this.rawDataMap.get(currentKey) ?? {}
-                        // 提取并存储原始数据块，去掉首尾的花括号
-                        tawData.code = this.sourceCode.slice(blockStart + 1, i);;
-                        this.rawDataMap.set(currentKey, tawData);
+                        let rawData = this.rawDataMap.get(currentKey) ?? {};
+                        rawData.code = this.sourceCode.slice(blockStart + 1, i);
+                        this.rawDataMap.set(currentKey, rawData);
                         currentKey = '';
                         blockStart = -1;
                     }
@@ -92,39 +123,33 @@ export class vdfParser {
         }
     }
 
-    private parseBaseFinish: boolean = false;
-    private parseBase(): void {
-        if (this.parseBaseFinish)
+    /**
+     * 解析VDF数据
+     */
+    private parseFromJson(): void {
+        if (this.parseFinished)
             return;
-        this.parseBaseFinish = true;
-        let code = this.sourceCode;
-        let i = 0;
+        this.parseFinished = true;
 
-        while ((i = code.indexOf('#base', i)) !== -1) {
-            i += 5; // 跳过'#base'
+        for (const [key, value] of Object.entries(this.sourceJson)) {
+            let rawData = this.rawDataMap.get(key) ?? {};
+            rawData.json = value;
+            this.rawDataMap.set(key, rawData);
+        }
+    }
 
-            // 跳过空白字符
-            while (i < code.length && (code[i] === ' ' || code[i] === '\t' || code[i] === '\n' || code[i] === '\r')) {
-                i++;
-            }
-
-            if (i >= code.length) break;
-
-            if (code[i] === '"' || code[i] === "'") {
-                const quote = code[i];
-                i++;
-                const start = i;
-
-                while (i < code.length && code[i] !== quote) {
-                    if (code[i] === '\\') {
-                        i++; // 跳过转义字符
-                    }
-                    i++;
-                }
-
-                if (i < code.length) {
-                    this.addBase(code.slice(start, i));
-                }
+    /**
+     * 检查数据初始化
+     * @throws 如果数据未初始化
+     */
+    private parseCheck(){
+        if (!this.parseFinished) {
+            if (this.sourceCode) {
+                this.parseFromCode();
+            } else if (this.sourceJson) {
+                this.parseFromJson();
+            } else {
+                throw new Error('数据未初始化，请先调用 init() 方法');
             }
         }
     }
@@ -136,7 +161,7 @@ export class vdfParser {
      * @throws 如果数据未初始化
      */
     getBase(): string[] {
-        this.parseBase();
+        this.parseCheck();
         return this.base;
     }
 
@@ -146,26 +171,20 @@ export class vdfParser {
      */
     addBase(path: string) {
         this.base.push(path);
+        return this
     }
 
-
-    /** 所有键的列表 */
-    private keys: string[]
     /**
      * 获取所有键的列表
      * @throws 如果数据未初始化
      */
     getTree(): string[] {
-        this.parseInitial()
-        if (this.keys)
-            return this.keys;
+        this.parseCheck();
         if (this.sourceCode) {
-            this.keys = [...this.rawDataMap.keys()];
-            return this.keys
+            return [...this.rawDataMap.keys()]
         }
         if (this.sourceJson) {
-            this.keys = Object.keys(this.sourceJson);
-            return this.keys
+            return Object.keys(this.sourceJson)
         }
         throw new Error('数据未初始化，请先调用 init() 方法');
     }
@@ -175,8 +194,8 @@ export class vdfParser {
      * @param key 要获取的键
      * @throws 如果数据未初始化
      */
-    getDataJson(key: string): object | undefined {
-
+    getDataJson(key: string): any | undefined {
+        this.parseCheck();
         const rawData = this.rawDataMap.get(key);
         if (!rawData)
             return undefined;
@@ -198,6 +217,7 @@ export class vdfParser {
     }
 
     getDataCode(key: string): string | undefined {
+        this.parseCheck();
         const rawData = this.rawDataMap.get(key);
         if (!rawData)
             return undefined;
@@ -261,6 +281,7 @@ export class vdfParser {
      * @throws 如果数据未初始化
      */
     depart(limit: number = 50): vdfParser[] {
+        this.parseCheck();
         const result: vdfParser[] = [];
         const entries = [...this.rawDataMap.entries()];
 
