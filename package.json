@@ -1,7 +1,7 @@
 {
   "name": "vdf-faster",
   "description": "a tools for turn to json to dota2's kv file.//Valve's KeyValues Text File Format serialization library",
-  "version": "0.2.0",
+  "version": "1.0.1",
   "homepage": "https://e.coding.net/g-ztdo6466/dota2GalleryDev/vdf-faster",
   "author": "西索酱",
   "license": "MIT",
@@ -31,6 +31,10 @@
     "node": "18.18.0"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "build": "tsup"
   }
 }
