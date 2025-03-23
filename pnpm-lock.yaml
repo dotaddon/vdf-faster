@@ -5,12 +5,95 @@ settings:
   excludeLinksFromLockfile: false
 
 devDependencies:
+  '@hinw/vdf-parser':
+    specifier: ^1.1.7
+    version: 1.1.7(typescript@5.8.2)
   '@types/node':
     specifier: 18.18.0
     version: 18.18.0
+  fast-vdf:
+    specifier: ^2.0.5
+    version: 2.0.5
+  kvparser:
+    specifier: ^1.0.2
+    version: 1.0.2
+  simple-vdf:
+    specifier: ^1.1.1
+    version: 1.1.1
+  vdf-extra:
+    specifier: ^2.2.2
+    version: 2.2.2
+  vdf-parser:
+    specifier: ^1.2.1
+    version: 1.2.1
+  vdf-reader:
+    specifier: ^1.0.1
+    version: 1.0.1
+  vdfjs:
+    specifier: ^2.0.3
+    version: 2.0.3
 
 packages:
 
+  /@hinw/vdf-parser@1.1.7(typescript@5.8.2):
+    resolution: {integrity: sha512-p7lE9WthSVCuxz/Ik/B6gZ4g5CUeLOaYqY8n33xU86dnfrKI37y5gPZv/8acknkJtohbd4BIDTJXdMoQMSVkhg==}
+    peerDependencies:
+      typescript: ^5.0.0
+    dependencies:
+      typescript: 5.8.2
+    dev: true
+
   /@types/node@18.18.0:
     resolution: {integrity: sha512-3xA4X31gHT1F1l38ATDIL9GpRLdwVhnEFC8Uikv5ZLlXATwrCYyPq7ZWHxzxc3J/30SUiwiYT+bQe0/XvKlWbw==}
+    dev: true
+
+  /fast-vdf@2.0.5:
+    resolution: {integrity: sha512-OUnae0tIuSDhxMEWONR6xxLehjeoUoJViCAFnOgNetQLUIrO9Vl1GNM+Zrx+eJJNwaf+pw0UNcAQjJa54kbLpw==}
+    dev: true
+
+  /kvparser@1.0.2:
+    resolution: {integrity: sha512-5P/5qpTAHjVYWqcI55B3yQwSY2FUrYYrJj5i65V1Wmg7/4W4OnBcaodaEvLyVuugeOnS+BAaKm9LbPazGJcRyA==}
+    engines: {node: '>=4.0.0'}
+    dev: true
+
+  /lodash@4.17.21:
+    resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
+    dev: true
+
+  /minimist@1.2.8:
+    resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
+    dev: true
+
+  /simple-vdf@1.1.1:
+    resolution: {integrity: sha512-IHz5fiOyWX0etTzlrzpWfKWxkwOhSwbbuZxcig+JuON0id1clnYlINBRbe4M4Pz4VnNvNvNaZiKiS7tdIYyF6g==}
+    dev: true
+
+  /typescript@5.8.2:
+    resolution: {integrity: sha512-aJn6wq13/afZp/jT9QZmwEjDqqvSGp1VT5GVg+f/t6/oVyrgXM6BY1h9BRh/O5p3PlUPAe+WuiEZOmb/49RqoQ==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+    dev: true
+
+  /vdf-extra@2.2.2:
+    resolution: {integrity: sha512-wqu6E5PMjPzKQSVsWrbVoLp5Oy4pnxy59f/2xaZa7gbBjI6dYSAcpAqNIyZdixQFrNZrLbh1zkeQWWZ5tsnffA==}
+    dependencies:
+      lodash: 4.17.21
+    dev: true
+
+  /vdf-parser@1.2.1:
+    resolution: {integrity: sha512-g5c73LP8NSebruEiVjOpV6KlN6xgVXBXc5UbexHWzjkatLJR++gUBhg76YqfJ9j4ZLfZ+Hv00592uiDywR+dWg==}
+    dev: true
+
+  /vdf-reader@1.0.1:
+    resolution: {integrity: sha512-X1W8y0AXvUzI/N8JOzNE8cYhMfcTetYfGZhJd6+2niDUWJW6YOoVJTxjxTBDLCwblDF92szswAsPJGPOJh7pdg==}
+    dependencies:
+      lodash: 4.17.21
+    dev: true
+
+  /vdfjs@2.0.3:
+    resolution: {integrity: sha512-nQTcZJ1yaixgt/cKTSqJZYJSL5pGLFs5373KvkmwHqluSknEAy2z4w5hv91dehXcs3VrY8Gs0lg1pRswpfKuyw==}
+    hasBin: true
+    dependencies:
+      lodash: 4.17.21
+      minimist: 1.2.8
     dev: true
